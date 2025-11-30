@@ -6,10 +6,23 @@ import sys
 pygame.init()
 pygame.mixer.init()  # Initialize sound mixer
 
-# Sounds
+# Sound effects
 sound_correct = pygame.mixer.Sound('correct.wav')
 sound_wrong = pygame.mixer.Sound('wrong.wav')
 sound_miss = pygame.mixer.Sound('miss.wav')
+
+# Background music - TO ADD BACKGROUND MUSIC:
+# 1. Get a music file (.mp3, .ogg, or .wav format)
+# 2. Place it in the same folder as this script
+# 3. Uncomment the lines below and replace 'background_music.mp3' with your filename
+#
+# pygame.mixer.music.load('background_music.mp3')
+# pygame.mixer.music.set_volume(0.3)  # Set volume (0.0 to 1.0)
+# pygame.mixer.music.play(-1)  # -1 means loop forever
+#
+# To stop music: pygame.mixer.music.stop()
+# To pause music: pygame.mixer.music.pause()
+# To resume music: pygame.mixer.music.unpause()
 
 # Screen dimensions
 SCREEN_WIDTH = 800
@@ -51,7 +64,7 @@ high_score = load_high_score()
 
 # Initialize screen
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption("Chinese Character Fall - Type the Pinyin!")
+pygame.display.set_caption("Falling Characters")
 clock = pygame.time.Clock()
 
 # Fonts
@@ -74,9 +87,21 @@ except:
                 # Last resort - try any available font
                 chinese_font = pygame.font.SysFont('arial', 72)
 
-# UI fonts
-ui_font = pygame.font.SysFont('arial', 36)
-input_font = pygame.font.SysFont('arial', 32)
+# UI fonts - using more visually pleasing fonts
+try:
+    # Try modern, clean fonts for menu
+    menu_title_font = pygame.font.SysFont('segoeui', 64, bold=True)
+    menu_font = pygame.font.SysFont('segoeui', 32)
+    ui_font = pygame.font.SysFont('segoeui', 36)
+    input_font = pygame.font.SysFont('segoeui', 32)
+    small_font = pygame.font.SysFont('segoeui', 24)
+except:
+    # Fallback to Arial
+    menu_title_font = pygame.font.SysFont('arial', 64, bold=True)
+    menu_font = pygame.font.SysFont('arial', 32)
+    ui_font = pygame.font.SysFont('arial', 36)
+    input_font = pygame.font.SysFont('arial', 32)
+    small_font = pygame.font.SysFont('arial', 24)
 
 # Character database from Lessons 7 and 8
 # Format: 'character': {'pinyin': [...], 'meaning': [...]}
@@ -214,7 +239,8 @@ class Game:
         else:  # meaning mode
             answer_options = char_data['meaning']
         
-        x = random.randint(50, SCREEN_WIDTH - 50)
+        # Ensure character spawns within visible bounds (with margin for character size)
+        x = random.randint(100, SCREEN_WIDTH - 100)
         y = -50
         new_char = FallingCharacter(character, answer_options, x, y, self.fall_speed)
         self.characters.append(new_char)
@@ -277,7 +303,7 @@ class Game:
                 self.score += SCORE_PER_CHARACTER
                 char.active = False
                 self.characters.remove(char)
-                self.feedback_message = "Correct! ✓"
+                self.feedback_message = "Correct!"
                 self.feedback_timer = 30
                 self.user_input = ""
                 sound_correct.play()
@@ -297,13 +323,13 @@ class Game:
             char.draw(surface)
             
         # Draw UI
-        mode_text = "PINYIN MODE" if self.game_mode == 'pinyin' else "MEANING MODE"
+        mode_text = "PINYIN" if self.game_mode == 'pinyin' else "MEANING"
         mode_display = ui_font.render(mode_text, True, YELLOW)
         score_text = ui_font.render(f"Score: {self.score}", True, WHITE)
         lives_text = ui_font.render(f"Lives: {self.lives}", True, WHITE)
         level_text = ui_font.render(f"Level: {self.level}", True, WHITE)
         
-        surface.blit(mode_display, (SCREEN_WIDTH - 250, 10))
+        surface.blit(mode_display, (SCREEN_WIDTH - 180, 10))
         surface.blit(score_text, (10, 10))
         surface.blit(lives_text, (10, 50))
         surface.blit(level_text, (10, 90))
@@ -344,18 +370,100 @@ class Game:
             surface.blit(final_score_text, final_score_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 20)))
             surface.blit(restart_text, restart_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT // 2 + 80)))
 
+def draw_content_viewer(screen, lesson_data, lesson_name, scroll_offset):
+    """Draw a scrollable content viewer showing all characters in a lesson"""
+    screen.fill(BLUE)
+    
+    # Draw title
+    title_text = menu_title_font.render(f"{lesson_name} Content", True, WHITE)
+    title_rect = title_text.get_rect(center=(SCREEN_WIDTH // 2, 40))
+    screen.blit(title_text, title_rect)
+    
+    # Draw column headers (adjusted positions for wider character column)
+    header_y = 90
+    header_char = small_font.render("Character", True, YELLOW)
+    header_pinyin = small_font.render("Pinyin", True, YELLOW)
+    header_meaning = small_font.render("Meaning", True, YELLOW)
+    
+    screen.blit(header_char, (50, header_y))
+    screen.blit(header_pinyin, (280, header_y))  # Moved further right
+    screen.blit(header_meaning, (530, header_y))  # Moved further right
+    
+    # Draw a line under headers
+    pygame.draw.line(screen, WHITE, (30, 120), (SCREEN_WIDTH - 30, 120), 2)
+    
+    # Create scrollable content area
+    content_y = 140
+    row_height = 50  # Increased from 45 to 50 for better spacing
+    visible_rows = (SCREEN_HEIGHT - 200) // row_height
+    
+    # Get sorted list of characters
+    characters = list(lesson_data.keys())
+    start_idx = max(0, scroll_offset)
+    end_idx = min(len(characters), start_idx + visible_rows)
+    
+    # Draw each character entry
+    for i in range(start_idx, end_idx):
+        char = characters[i]
+        data = lesson_data[char]
+        
+        y_pos = content_y + (i - start_idx) * row_height
+        
+        # Character (Chinese font) - render at larger size without scaling
+        # Render at size 36 directly instead of scaling down
+        char_font = pygame.font.SysFont('dfkai-sb', 36)
+        try:
+            if char_font.get_height() == 0:
+                char_font = chinese_font
+        except:
+            char_font = chinese_font
+            
+        char_text = char_font.render(char, True, WHITE)
+        # Center the character within its column (50-250 = 200px wide column)
+        char_rect = char_text.get_rect()
+        char_x = 50 + (200 - char_rect.width) // 2  # Center within 200px column
+        screen.blit(char_text, (char_x, y_pos + 5))
+        
+        # Pinyin (show first option)
+        pinyin_text = small_font.render(data['pinyin'][0], True, WHITE)
+        screen.blit(pinyin_text, (280, y_pos + 12))  # Moved further right
+        
+        # Meaning (show first option, truncate if too long)
+        meaning = data['meaning'][0]
+        if len(meaning) > 22:
+            meaning = meaning[:19] + "..."
+        meaning_text = small_font.render(meaning, True, WHITE)
+        screen.blit(meaning_text, (530, y_pos + 12))  # Moved further right
+    
+    # Draw scroll indicators
+    if scroll_offset > 0:
+        up_arrow = menu_font.render("▲ Scroll Up", True, YELLOW)
+        screen.blit(up_arrow, (SCREEN_WIDTH // 2 - 60, SCREEN_HEIGHT - 80))
+    
+    if end_idx < len(characters):
+        down_arrow = menu_font.render("▼ Scroll Down", True, YELLOW)
+        screen.blit(down_arrow, (SCREEN_WIDTH // 2 - 70, SCREEN_HEIGHT - 50))
+    
+    # Draw total count
+    count_text = small_font.render(f"Total: {len(characters)} words/characters", True, WHITE)
+    screen.blit(count_text, (30, SCREEN_HEIGHT - 30))
+    
+    # Draw back instruction
+    back_text = small_font.render("Press ESC to go back", True, WHITE)
+    screen.blit(back_text, (SCREEN_WIDTH - 200, SCREEN_HEIGHT - 30))
+
 def draw_menu(screen, title, options, selected_index):
     """Draw a menu screen with selectable options"""
     screen.fill(BLUE)
     
     # Draw title
-    title_text = chinese_font.render(title, True, WHITE)
+    title_text = menu_title_font.render(title, True, WHITE)
     title_rect = title_text.get_rect(center=(SCREEN_WIDTH // 2, 100))
     screen.blit(title_text, title_rect)
     
     # Draw high score if on main menu
-    if title == "Chinese Character Fall":
-        high_score_text = ui_font.render(f"High Score: {high_score}", True, YELLOW)
+    if title == "Falling Characters":
+        high_score_text = menu_font.render(f"High Score: {high_score}", True, YELLOW)
         high_score_rect = high_score_text.get_rect(center=(SCREEN_WIDTH // 2, 180))
         screen.blit(high_score_text, high_score_rect)
         options_start_y = 280
@@ -365,18 +473,18 @@ def draw_menu(screen, title, options, selected_index):
     # Draw options
     for i, option in enumerate(options):
         color = YELLOW if i == selected_index else WHITE
-        option_text = ui_font.render(option, True, color)
+        option_text = menu_font.render(option, True, color)
         option_rect = option_text.get_rect(center=(SCREEN_WIDTH // 2, options_start_y + i * 60))
         screen.blit(option_text, option_rect)
         
         # Draw arrow for selected option
         if i == selected_index:
-            arrow = ui_font.render(">>>", True, YELLOW)
-            arrow_rect = arrow.get_rect(center=(SCREEN_WIDTH // 2 - 180, options_start_y + i * 60))
+            arrow = menu_font.render("►", True, YELLOW)
+            arrow_rect = arrow.get_rect(center=(SCREEN_WIDTH // 2 - 150, options_start_y + i * 60))
             screen.blit(arrow, arrow_rect)
     
     # Draw instructions
-    inst_text = input_font.render("Use UP/DOWN arrows and press ENTER to select", True, WHITE)
+    inst_text = small_font.render("Use UP/DOWN arrows and press ENTER to select", True, WHITE)
     inst_rect = inst_text.get_rect(center=(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 50))
     screen.blit(inst_text, inst_rect)
 
@@ -385,13 +493,15 @@ def main():
     running = True
     
     # Menu states
-    menu_state = "main"  # main, lesson_select, mode_select, instructions, playing
+    menu_state = "main"  # main, lesson_select, mode_select, instructions, playing, content_select, content_view
     lesson_selected = None
     mode_selected = None
     selected_option = 0
+    scroll_offset = 0  # For content viewer scrolling
+    content_lesson = None  # Which lesson content to view
     
     # Menu options
-    main_menu_options = ["Start Game", "Instructions", "Quit"]
+    main_menu_options = ["Start Game", "Content", "Instructions", "Quit"]
     lesson_menu_options = ["Lesson 7", "Lesson 8", "Back"]
     mode_menu_options = ["Pinyin Mode", "Meaning Mode", "Back"]
     
@@ -413,9 +523,12 @@ def main():
                         if selected_option == 0:  # Start Game
                             menu_state = "lesson_select"
                             selected_option = 0
-                        elif selected_option == 1:  # Instructions
+                        elif selected_option == 1:  # Content
+                            menu_state = "content_select"
+                            selected_option = 0
+                        elif selected_option == 2:  # Instructions
                             menu_state = "instructions"
-                        elif selected_option == 2:  # Quit
+                        elif selected_option == 3:  # Quit
                             running = False
                     elif event.key == pygame.K_ESCAPE:
                         running = False
@@ -439,6 +552,39 @@ def main():
                             selected_option = 0
                     elif event.key == pygame.K_ESCAPE:
                         menu_state = "main"
+                        selected_option = 0
+                
+                elif menu_state == "content_select":
+                    if event.key == pygame.K_UP:
+                        selected_option = (selected_option - 1) % len(lesson_menu_options)
+                    elif event.key == pygame.K_DOWN:
+                        selected_option = (selected_option + 1) % len(lesson_menu_options)
+                    elif event.key == pygame.K_RETURN:
+                        if selected_option == 0:  # Lesson 7
+                            content_lesson = LESSON_7_DATA
+                            menu_state = "content_view"
+                            scroll_offset = 0
+                        elif selected_option == 1:  # Lesson 8
+                            content_lesson = LESSON_8_DATA
+                            menu_state = "content_view"
+                            scroll_offset = 0
+                        elif selected_option == 2:  # Back
+                            menu_state = "main"
+                            selected_option = 0
+                    elif event.key == pygame.K_ESCAPE:
+                        menu_state = "main"
+                        selected_option = 0
+                
+                elif menu_state == "content_view":
+                    lesson_size = len(content_lesson)
+                    max_scroll = max(0, lesson_size - 10)  # Approximate visible items
+                    
+                    if event.key == pygame.K_UP:
+                        scroll_offset = max(0, scroll_offset - 1)
+                    elif event.key == pygame.K_DOWN:
+                        scroll_offset = min(max_scroll, scroll_offset + 1)
+                    elif event.key == pygame.K_ESCAPE or event.key == pygame.K_RETURN:
+                        menu_state = "content_select"
                         selected_option = 0
                         
                 elif menu_state == "mode_select":
@@ -496,7 +642,7 @@ def main():
         
         # Draw based on current state
         if menu_state == "main":
-            draw_menu(screen, "Chinese Character Fall", main_menu_options, selected_option)
+            draw_menu(screen, "Falling Characters", main_menu_options, selected_option)
             
         elif menu_state == "lesson_select":
             draw_menu(screen, "Select Lesson", lesson_menu_options, selected_option)
@@ -506,23 +652,49 @@ def main():
             
         elif menu_state == "instructions":
             screen.fill(BLUE)
-            title = chinese_font.render("How to Play", True, WHITE)
-            inst1 = ui_font.render("Chinese characters will fall from the top", True, WHITE)
-            inst2 = ui_font.render("Type the answer before they reach the bottom", True, WHITE)
-            inst3 = ui_font.render("Pinyin Mode: Type pinyin (e.g., ni3, hao3)", True, WHITE)
-            inst4 = ui_font.render("Meaning Mode: Type English meaning", True, WHITE)
-            inst5 = ui_font.render("Press ENTER to submit your answer", True, WHITE)
-            inst6 = ui_font.render("Don't let characters fall! You have 5 lives", True, WHITE)
-            back = ui_font.render("Press ENTER or ESC to go back", True, YELLOW)
+            title = menu_title_font.render("How to Play", True, WHITE)
+            inst1 = small_font.render("Chinese characters will fall from the top", True, WHITE)
+            inst2 = small_font.render("Type the answer before they reach the bottom", True, WHITE)
+            inst3 = small_font.render("Pinyin Mode: Type pinyin (e.g., ni3, hao3)", True, WHITE)
+            inst4 = small_font.render("Meaning Mode: Type English meaning", True, WHITE)
+            inst5 = small_font.render("Press ENTER to submit your answer", True, WHITE)
+            inst6 = small_font.render("Don't let characters fall! You have 5 lives", True, WHITE)
             
-            screen.blit(title, title.get_rect(center=(SCREEN_WIDTH // 2, 80)))
-            screen.blit(inst1, inst1.get_rect(center=(SCREEN_WIDTH // 2, 180)))
-            screen.blit(inst2, inst2.get_rect(center=(SCREEN_WIDTH // 2, 230)))
-            screen.blit(inst3, inst3.get_rect(center=(SCREEN_WIDTH // 2, 280)))
-            screen.blit(inst4, inst4.get_rect(center=(SCREEN_WIDTH // 2, 330)))
-            screen.blit(inst5, inst5.get_rect(center=(SCREEN_WIDTH // 2, 380)))
-            screen.blit(inst6, inst6.get_rect(center=(SCREEN_WIDTH // 2, 430)))
-            screen.blit(back, back.get_rect(center=(SCREEN_WIDTH // 2, 520)))
+            # Pinyin tone guide
+            tone_title = menu_font.render("Pinyin Tone Guide:", True, YELLOW)
+            tone1 = small_font.render("1st tone (ā): High, flat - like singing a high note", True, WHITE)
+            tone2 = small_font.render("2nd tone (á): Rising - like asking 'what?'", True, WHITE)
+            tone3 = small_font.render("3rd tone (ǎ): Falling then rising - like 'huh?'", True, WHITE)
+            tone4 = small_font.render("4th tone (à): Sharp falling - like a command 'Stop!'", True, WHITE)
+            tone5 = small_font.render("5th tone (a): Neutral/light - short and unstressed", True, WHITE)
+            tone_note = small_font.render("Type tones with numbers: ma1, ma2, ma3, ma4, or just 'ma'", True, GREEN)
+            
+            back = menu_font.render("Press ENTER or ESC to go back", True, YELLOW)
+            
+            screen.blit(title, title.get_rect(center=(SCREEN_WIDTH // 2, 40)))
+            screen.blit(inst1, inst1.get_rect(center=(SCREEN_WIDTH // 2, 100)))
+            screen.blit(inst2, inst2.get_rect(center=(SCREEN_WIDTH // 2, 130)))
+            screen.blit(inst3, inst3.get_rect(center=(SCREEN_WIDTH // 2, 160)))
+            screen.blit(inst4, inst4.get_rect(center=(SCREEN_WIDTH // 2, 190)))
+            screen.blit(inst5, inst5.get_rect(center=(SCREEN_WIDTH // 2, 220)))
+            screen.blit(inst6, inst6.get_rect(center=(SCREEN_WIDTH // 2, 250)))
+            
+            screen.blit(tone_title, tone_title.get_rect(center=(SCREEN_WIDTH // 2, 300)))
+            screen.blit(tone1, (80, 340))
+            screen.blit(tone2, (80, 370))
+            screen.blit(tone3, (80, 400))
+            screen.blit(tone4, (80, 430))
+            screen.blit(tone5, (80, 460))
+            screen.blit(tone_note, tone_note.get_rect(center=(SCREEN_WIDTH // 2, 500)))
+            
+            screen.blit(back, back.get_rect(center=(SCREEN_WIDTH // 2, 560)))
+            
+        elif menu_state == "content_select":
+            draw_menu(screen, "Select Lesson Content", lesson_menu_options, selected_option)
+            
+        elif menu_state == "content_view":
+            lesson_name = "Lesson 7" if content_lesson == LESSON_7_DATA else "Lesson 8"
+            draw_content_viewer(screen, content_lesson, lesson_name, scroll_offset)
             
         elif menu_state == "playing" and game:
             game.draw(screen)
