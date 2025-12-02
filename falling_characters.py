@@ -65,7 +65,7 @@ THEMES = {
     'sunset': {
         'bg': (255, 140, 100),  # Coral/sunset
         'text': (255, 255, 255),  # White
-        'accent': (255, 215, 0),  # Gold
+        'accent': (200, 50, 0),  # Dark orange-red for better contrast
         'correct': (255, 255, 150),  # Light yellow
         'wrong': (139, 0, 0),  # Dark red
         'name': 'Sunset'
@@ -464,7 +464,7 @@ class Game:
                 if self.combo_multiplier > 1:
                     self.feedback_message = f"Correct! x{self.combo_multiplier} COMBO!"
                 else:
-                    self.feedback_message = "Correct! ✓"
+                    self.feedback_message = "Correct!"
                 self.feedback_timer = 30
                 self.user_input = ""
                 sound_correct.play()
@@ -731,19 +731,20 @@ def draw_content_viewer(screen, lesson_data, lesson_name, scroll_offset):
     # Draw scroll indicators
     if scroll_offset > 0:
         up_arrow = menu_font.render("▲ Scroll Up", True, theme['accent'])
-        screen.blit(up_arrow, (SCREEN_WIDTH // 2 - 60, SCREEN_HEIGHT - 80))
+        screen.blit(up_arrow, (SCREEN_WIDTH // 2 - 60, SCREEN_HEIGHT - 100))
     
     if end_idx < len(characters):
         down_arrow = menu_font.render("▼ Scroll Down", True, theme['accent'])
-        screen.blit(down_arrow, (SCREEN_WIDTH // 2 - 70, SCREEN_HEIGHT - 50))
+        screen.blit(down_arrow, (SCREEN_WIDTH // 2 - 70, SCREEN_HEIGHT - 70))
     
-    # Draw total count
+    # Draw total count on the left
     count_text = small_font.render(f"Total: {len(characters)} words/characters", True, theme['text'])
-    screen.blit(count_text, (30, SCREEN_HEIGHT - 30))
+    screen.blit(count_text, (30, SCREEN_HEIGHT - 40))
     
-    # Draw back instruction
+    # Draw back instruction on the right, properly aligned
     back_text = small_font.render("Press ESC to go back", True, theme['text'])
-    screen.blit(back_text, (SCREEN_WIDTH - 200, SCREEN_HEIGHT - 30))
+    back_rect = back_text.get_rect(right=SCREEN_WIDTH - 30, bottom=SCREEN_HEIGHT - 15)
+    screen.blit(back_text, back_rect)
 
 def draw_menu(screen, title, options, selected_index):
     """Draw a menu screen with selectable options"""
@@ -1020,11 +1021,11 @@ def main():
             screen.blit(inst6, inst6.get_rect(center=(SCREEN_WIDTH // 2, 250)))
             
             screen.blit(tone_title, tone_title.get_rect(center=(SCREEN_WIDTH // 2, 300)))
-            screen.blit(tone1, (80, 340))
-            screen.blit(tone2, (80, 370))
-            screen.blit(tone3, (80, 400))
-            screen.blit(tone4, (80, 430))
-            screen.blit(tone5, (80, 460))
+            screen.blit(tone1, tone1.get_rect(center=(SCREEN_WIDTH // 2, 340)))
+            screen.blit(tone2, tone2.get_rect(center=(SCREEN_WIDTH // 2, 370)))
+            screen.blit(tone3, tone3.get_rect(center=(SCREEN_WIDTH // 2, 400)))
+            screen.blit(tone4, tone4.get_rect(center=(SCREEN_WIDTH // 2, 430)))
+            screen.blit(tone5, tone5.get_rect(center=(SCREEN_WIDTH // 2, 460)))
             screen.blit(tone_note, tone_note.get_rect(center=(SCREEN_WIDTH // 2, 500)))
             
             screen.blit(back, back.get_rect(center=(SCREEN_WIDTH // 2, 560)))
