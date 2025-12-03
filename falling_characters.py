@@ -14,7 +14,7 @@ sound_miss = pygame.mixer.Sound('miss.wav')
 # Background music - TO ADD BACKGROUND MUSIC:
 # 1. Get a music file (.mp3, .ogg, or .wav format)
 # 2. Place it in the same folder as this script
-# 3. Uncomment the lines below and replace 'background_music.mp3' with your filename
+# 3. Call it background_music.mp3
 #
 # pygame.mixer.music.load('background_music.mp3')
 # pygame.mixer.music.set_volume(0.3)  # Set volume (0.0 to 1.0)
@@ -243,7 +243,7 @@ LESSON_7_DATA = {
     '後天': {'pinyin': ['hou4tian1', 'houtian'], 'meaning': ['the day after tomorrow', 'day after tomorrow']},
     '下次': {'pinyin': ['xia4ci4', 'xiaci'], 'meaning': ['next time']},
     '沒問題': {'pinyin': ['mei2wen4ti2', 'meiwenti'], 'meaning': ['no problem']},
-    '到了': {'pinyin': ['dui4le', 'duile'], 'meaning': ['by the way']},
+    '對了': {'pinyin': ['dui4le', 'duile'], 'meaning': ['by the way']},
     '有空': {'pinyin': ['you3kong4', 'youkong'], 'meaning': ['have free time', 'to have free time']},
     '再見': {'pinyin': ['zai4jian4', 'zaijian'], 'meaning': ['goodbye']},
     '在': {'pinyin': ['zai4'], 'meaning': ['at', 'progressive']},
